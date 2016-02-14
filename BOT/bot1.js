@@ -241,18 +241,15 @@ steamFriends.on('message', function(source, message, type, chatter) {
 		createLobby();
 		blog.info('Пользователь '+source+' запросил создание новой игры');
 		break
-	case 'Офф':
-		Dota2.exit();
-		steamClient.disconnect();
-		connection.query("UPDATE ladder_bots SET bot_busy=0 WHERE bot_id = " + botid);
-		blog.info('Пользователь '+source+' выключил бота');
-		break
 	case 'Пригласить админов':
 		Dota2.inviteToLobby("76561198107070247");
 		steamFriends.sendMessage(source, 'Приглашение для админов было отправленно!' + source, steam.EChatEntryType.ChatMsg); 
 		blog.info('Пользователь '+source+' пригласил администрацию в лобби');
 		break
 	case 'Офф':
+		Dota2.abandonCurrentGame();
+		Dota2.leavePracticeLobby();
+		Dota2.leaveChat('Lobby_'+id);
 		Dota2.exit();
 		steamClient.disconnect();
 		FreeBot();
