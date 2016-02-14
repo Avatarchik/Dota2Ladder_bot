@@ -6,9 +6,9 @@ var steam = require("steam"),
     steamClient = new steam.SteamClient(),
     steamUser = new steam.SteamUser(steamClient),
     steamFriends = new steam.SteamFriends(steamClient),
-    Dota2 = new dota2.Dota2Client(steamClient, true);
-	
+    Dota2 = new dota2.Dota2Client(steamClient, true);	
 var mysql = require('mysql');
+//Настройка MySQL
 var db_config = {
 	host: 'localhost',
     user: 'root',
@@ -19,14 +19,9 @@ var db_config = {
 	var botid = 1;
 	var log4js = require('log4js');
 
-	//to add an appender programmatically, and without clearing other appenders
-	//loadAppender is only necessary if you haven't already configured an appender of this type
-	log4js.loadAppender('file');
-	
-	log4js.addAppender(log4js.appenders.file('../logs/log.log'), 'result');
-	
-	log4js.addAppender(log4js.appenders.file('../logs/bots/bot'+botid+'.log'), 'BOT #'+botid);
-	
+	log4js.loadAppender('file');	
+	log4js.addAppender(log4js.appenders.file('../logs/log.log'), 'result');	
+	log4js.addAppender(log4js.appenders.file('../logs/bots/bot'+botid+'.log'), 'BOT #'+botid);	
 	log4js.addAppender(log4js.appenders.file('../logs/bots/chat_bot'+botid+'.log'), 'CHATBOT #'+botid);
 
 	var logger = log4js.getLogger('result');
@@ -34,22 +29,17 @@ var db_config = {
 	var chat = log4js.getLogger('CHATBOT #'+botid);
 
 function handleDisconnect() {
-	  connection = mysql.createConnection(db_config); // Recreate the connection, since
-													  // the old one cannot be reused.
-
-	  connection.connect(function(err) {              // The server is either down
-		if(err) {                                     // or restarting (takes a while sometimes).
-		 // console.log('error when connecting to db:', err);
-		  setTimeout(handleDisconnect, 2000); // We introduce a delay before attempting to reconnect,
-		}                                     // to avoid a hot loop, and to allow our node script to
-	  });                                     // process asynchronous requests in the meantime.
-											  // If you're also serving http, display a 503 error.
+	  connection = mysql.createConnection(db_config);
+	  connection.connect(function(err) {
+		if(err) {
+		  setTimeout(handleDisconnect, 2000); 
+		}                                     
+	  });                                    
 	  connection.on('error', function(err) {
-		//console.log('db error', err);
-		if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
-		  handleDisconnect();                         // lost due to either server restart, or a
-		} else {                                      // connnection idle timeout (the wait_timeout
-		  throw err;                                  // server variable configures this)
+		if(err.code === 'PROTOCOL_CONNECTION_LOST') { 
+		  handleDisconnect();                         
+		} else {                                     
+		  throw err;                                  
 		}
 	  });
 }
@@ -88,7 +78,10 @@ connection.connect(function(err){
 			});	
 		}
 	});	
-
+function freebot()
+{
+	connection.query("UPDATE ladder_bots SET bot_busy=0 WHERE bot_id = " + botid);
+}
 function createLobby()
 {
 
@@ -161,13 +154,15 @@ var onSteamLogOn = function onSteamLogOn(logonResp) {
 			if(status != 0)
 			{
 				connection.query("UPDATE ladder_lobbies_games SET lobby_g_result= "+ status + " WHERE lobby_g_id = " + lobbygame);
-				if(status == 0)
-				{
-					connection.query("UPDATE ladder_lobbies_games SET lobby_g_winner= "+ t1 + " WHERE lobby_g_id = " + lobbygame);
-				}else{
-					connection.query("UPDATE ladder_lobbies_games SET lobby_g_winner= "+ t2 + " WHERE lobby_g_id = " + lobbygame);
-				}
-				connection.query("UPDATE ladder_bots SET bot_busy=0 WHERE bot_id = " + botid);
+				switch(status){
+					case 1://Победа тьмы
+						connection.query("UPDATE ladder_lobbies_games SET lobby_g_winner= "+ t1 + " WHERE lobby_g_id = " + lobbygame);
+						break
+					case 2://Победа света
+						connection.query("UPDATE ladder_lobbies_games SET lobby_g_winner= "+ t2 + " WHERE lobby_g_id = " + lobbygame);
+						break
+				}				
+				FreeBot();
 			}
 			var pn;
 			var pnn = 0;
@@ -260,7 +255,7 @@ steamFriends.on('message', function(source, message, type, chatter) {
 	case 'Офф':
 		Dota2.exit();
 		steamClient.disconnect();
-		connection.query("UPDATE ladder_bots SET bot_busy=0 WHERE bot_id = " + botid);
+		FreeBot();
 		blog.info('Пользователь '+source+' выключил бота');
 		break
 	case 'Начать игру':
@@ -269,7 +264,10 @@ steamFriends.on('message', function(source, message, type, chatter) {
 		steamFriends.sendMessage(source, answer, steam.EChatEntryType.ChatMsg);
 		blog.info('Пользователь '+source+' запросил старт игры и получил ответ "'+answer+'"');	
 		break
-
+	case 'Кикнуть':
+		Dota2.practiceLobbyKickFromTeam(Dota2.ToAccountID('76561198107070247'));
+ 		steamFriends.sendMessage(source, 'Игрок кикнут', steam.EChatEntryType.ChatMsg);
+		break
   }  
 });
 steamUser.on('updateMachineAuth', function(sentry, callback) {
