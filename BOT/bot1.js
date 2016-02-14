@@ -220,16 +220,17 @@ steamFriends.on('message', function(source, message, type, chatter) {
 	
 	console.log('Получено сообщение: ' + message);
     
-  if (message == 'Покинуть') {	
-	Dota2.abandonCurrentGame();
-	Dota2.leavePracticeLobby();
-	Dota2.leaveChat('Lobby_'+id);
-    steamFriends.sendMessage(source, 'Покинул лобби #'+id, steam.EChatEntryType.ChatMsg);
-	blog.info('Пользователь '+source+' приказал покинуть лобби #'+id);
-	id = null;
-  }
-  else if(message == 'Статус')
+  switch(message)
   {
+  	case 'Покинуть':
+	  	Dota2.abandonCurrentGame();
+		Dota2.leavePracticeLobby();
+		Dota2.leaveChat('Lobby_'+id);
+	    steamFriends.sendMessage(source, 'Покинул лобби #'+id, steam.EChatEntryType.ChatMsg);
+		blog.info('Пользователь '+source+' приказал покинуть лобби #'+id);
+		id = null;
+		break
+	case 'Статус':
 	  if(id != null)
 	  {
 		var answer = 'Нахожусь в лобби #'+id+'. Пароль от лобби: '+pass;
@@ -240,38 +241,36 @@ steamFriends.on('message', function(source, message, type, chatter) {
 	  {
 		steamFriends.sendMessage(source, 'Ожидаю игру.', steam.EChatEntryType.ChatMsg);   
 	  }
-	 
-  }
-  else if(message == 'Создать')
-  {
-	createLobby();
-	blog.info('Пользователь '+source+' запросил создание новой игры');
-  }
-  else if(message == 'Офф')
-  {
-	Dota2.exit();
-	steamClient.disconnect();
-	connection.query("UPDATE ladder_bots SET bot_busy=0 WHERE bot_id = " + botid);
-	blog.info('Пользователь '+source+' выключил бота');
-  }
-  else if(message == 'kick')
-  {
-	 Dota2.practiceLobbyKickFromTeam(Dota2.ToAccountID('76561198107070247'));
-	 steamFriends.sendMessage(source, 'Игрок кикнут', steam.EChatEntryType.ChatMsg); 
-  }
-  else if(message == 'Пригласить админов')
-  {
-	Dota2.inviteToLobby("76561198107070247");
-	steamFriends.sendMessage(source, 'Приглашение для админов было отправленно!' + source, steam.EChatEntryType.ChatMsg); 
-	blog.info('Пользователь '+source+' пригласил администрацию в лобби');
-  }
-  else if(message == 'Начать игру')
-  {
-	Dota2.launchPracticeLobby(function(err, data){});
-	var answer = 'Игра #' + id + ' была начата!';
-	steamFriends.sendMessage(source, answer, steam.EChatEntryType.ChatMsg);
-	blog.info('Пользователь '+source+' запросил старт игры и получил ответ "'+answer+'"');	
-  }
+	  break
+	case 'Создать':
+		createLobby();
+		blog.info('Пользователь '+source+' запросил создание новой игры');
+		break
+	case 'Офф':
+		Dota2.exit();
+		steamClient.disconnect();
+		connection.query("UPDATE ladder_bots SET bot_busy=0 WHERE bot_id = " + botid);
+		blog.info('Пользователь '+source+' выключил бота');
+		break
+	case 'Пригласить админов':
+		Dota2.inviteToLobby("76561198107070247");
+		steamFriends.sendMessage(source, 'Приглашение для админов было отправленно!' + source, steam.EChatEntryType.ChatMsg); 
+		blog.info('Пользователь '+source+' пригласил администрацию в лобби');
+		break
+	case 'Офф':
+		Dota2.exit();
+		steamClient.disconnect();
+		connection.query("UPDATE ladder_bots SET bot_busy=0 WHERE bot_id = " + botid);
+		blog.info('Пользователь '+source+' выключил бота');
+		break
+	case 'Начать игру':
+		Dota2.launchPracticeLobby(function(err, data){});
+		var answer = 'Игра #' + id + ' была начата!';
+		steamFriends.sendMessage(source, answer, steam.EChatEntryType.ChatMsg);
+		blog.info('Пользователь '+source+' запросил старт игры и получил ответ "'+answer+'"');	
+		break
+
+  }  
 });
 steamUser.on('updateMachineAuth', function(sentry, callback) {
     fs.writeFileSync('sentry', sentry.bytes)
